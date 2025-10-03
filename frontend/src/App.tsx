@@ -1,11 +1,12 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+// import { useState } from 'react'
+// import reactLogo from './assets/react.svg'
+// import viteLogo from '/vite.svg'
 import './App.css'
-import { AppCard } from './components/ui/AppCard'
-import { ExpensesList } from './components/ExpensesList'
-import { AddExpenseForm } from './components/AddExpenseForm'
+// import { AppCard } from './components/ui/AppCard'
+// import { ExpensesList } from './components/ExpensesList'
+// import { AddExpenseForm } from './components/AddExpenseForm'
 import { Link, Outlet } from '@tanstack/react-router'
+import { AuthBar } from './components/AuthBar'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Link to="/expenses">Expenses</Link>
             <Link to="/expenses/new">New</Link>
           </nav>
+            <AuthBar />
         </header>
         <div className="mt-6">
           <Outlet />
