@@ -1,7 +1,8 @@
 // /frontend/src/routes/expenses.detail.tsx
 import { useQuery } from '@tanstack/react-query'
+import { UploadExpenseForm } from '../components/UploadExpenseForm'
 
-type Expense = { id: number; title: string; amount: number }
+type Expense = { id: number; title: string; amount: number; fileUrl: string }
 const API = 'http://localhost:3000/api' // if you’re using Vite proxy; otherwise "http://localhost:3000/api"
 
 export default function ExpenseDetailPage({ id }: { id: number }) {
@@ -30,7 +31,9 @@ export default function ExpenseDetailPage({ id }: { id: number }) {
         <h2 className="text-xl font-semibold">{item.title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">Amount</p>
         <p className="text-lg tabular-nums">#{item.amount}</p>
+        <a target="_blank" href={"http://localhost:3000/api/upload/signedUrl/" + item.fileUrl}>Download Receipt</a>
       </div>
+      <UploadExpenseForm expenseId={item.id} />
     </section>
   )
 }

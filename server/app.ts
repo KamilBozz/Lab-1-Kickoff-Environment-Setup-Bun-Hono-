@@ -6,10 +6,14 @@ import { cors } from 'hono/cors'
 import { authRoute } from './auth/kinde'
 // server/app.ts
 import { secureRoute } from './routes/secure'
+import { uploadRoute } from './routes/upload'
+
 
 
 
 export const app = new Hono()
+
+app.route('/api/upload', uploadRoute)
 
 app.use('/api/*', cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
