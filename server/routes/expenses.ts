@@ -16,6 +16,32 @@ const { expenses } = schema
 const ok = <T>(c: any, data: T, status = 200) => c.json({ data }, status)
 const err = (c: any, message: string, status = 400) => c.json({ error: { message } }, status)
 
+// Define types and helper functions
+type ExpenseRow = typeof expenses.$inferSelect
+type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
+
+const withSignedDownloadUrl = async (row: ExpenseRow): Promise<ExpenseRow> => {
+  if (!row.fileUrl) return row
+  if (row.fileUrl.startsWith('http://') || row.fileUrl.startsWith('https://')) {
+    return row
+  }
+
+  try {
+    const signedUrl = await getSignedUrl(
+      s3,
+      new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET!,
+        Key: row.fileUrl,
+      }),
+      { expiresIn: 3600 },
+    )
+    return { ...row, fileUrl: signedUrl }
+  } catch (error) {
+    console.error('Failed to sign download URL', error)
+    return row
+  }
+}
+
 const expenseSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(3).max(100),
@@ -40,7 +66,8 @@ export const expensesRoute = new Hono()
     const id = Number(c.req.param('id'))
     const [row] = await db.select().from(expenses).where(eq(expenses.id, id)).limit(1)
     if (!row) return c.json({ error: 'Not found' }, 404)
-    return c.json({ expense: row })
+    const expense = await withSignedDownloadUrl(row)
+    return c.json({ expense })
   })
   .post('/', zValidator('json', createExpenseSchema), async (c) => {
     const data = c.req.valid('json')
@@ -71,41 +98,15 @@ export const expensesRoute = new Hono()
     return c.json({ deleted: deletedRow })
   })
 
-  type ExpenseRow = typeof expenses.$inferSelect
-  type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>
-
-  const buildUpdatePayload = (input: UpdateExpenseInput) => {
-    const updates: Partial<Pick<ExpenseRow, 'title' | 'amount' | 'fileUrl'>> = {}
-    if (input.title !== undefined) updates.title = input.title
-    if (input.amount !== undefined) updates.amount = input.amount
-    if (Object.prototype.hasOwnProperty.call(input, 'fileKey')) {
-      updates.fileUrl = input.fileKey ?? null
-    }
-    if (Object.prototype.hasOwnProperty.call(input, 'fileUrl')) {
-      updates.fileUrl = input.fileUrl ?? null
-    }
-    return updates
+const buildUpdatePayload = (input: UpdateExpenseInput) => {
+  const updates: Partial<Pick<ExpenseRow, 'title' | 'amount' | 'fileUrl'>> = {}
+  if (input.title !== undefined) updates.title = input.title
+  if (input.amount !== undefined) updates.amount = input.amount
+  if (Object.prototype.hasOwnProperty.call(input, 'fileKey')) {
+    updates.fileUrl = input.fileKey ?? null
   }
-  
-
-  const withSignedDownloadUrl = async (row: ExpenseRow): Promise<ExpenseRow> => {
-  if (!row.fileUrl) return row
-  if (row.fileUrl.startsWith('http://') || row.fileUrl.startsWith('https://')) {
-    return row
+  if (Object.prototype.hasOwnProperty.call(input, 'fileUrl')) {
+    updates.fileUrl = input.fileUrl ?? null
   }
-
-  try {
-    const signedUrl = await getSignedUrl(
-      s3,
-      new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET!,
-        Key: row.fileUrl,
-      }),
-      { expiresIn: 3600 },
-    )
-    return { ...row, fileUrl: signedUrl }
-  } catch (error) {
-    console.error('Failed to sign download URL', error)
-    return row
-  }
+  return updates
 }

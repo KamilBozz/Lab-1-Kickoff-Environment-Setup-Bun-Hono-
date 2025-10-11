@@ -13,12 +13,11 @@ import { uploadRoute } from './routes/upload'
 
 export const app = new Hono()
 
-app.route('/api/upload', uploadRoute)
-
 app.use('/api/*', cors({
   origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  allowMethods: ['GET','POST','PATCH','DELETE','OPTIONS'],
+  allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }))
 
 // Global logger (from Lab 1)
@@ -41,5 +40,6 @@ app.get('/health', (c) => c.json({ status: 'healthy' }))
 app.route('/api/auth', authRoute)
 app.route('/api/secure', secureRoute)
 app.route('/api/expenses', expensesRoute)
+app.route('/api/upload', uploadRoute)
 
 export default app

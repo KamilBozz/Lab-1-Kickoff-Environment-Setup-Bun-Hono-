@@ -1,18 +1,21 @@
 // /frontend/src/routes/expenses.list.tsx
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-
-export type Expense = { id: number; title: string; amount: number }
+import type { Expense } from '../components/AddExpenseForm'
 
 // Use "/api" if you configured a Vite proxy in dev; otherwise use
 const API = 'http://localhost:3000/api'
 // const API = '/api'
 
 export default function ExpensesListPage() {
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
+  const qc = useQueryClient()
+  
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['expenses'],
     queryFn: async () => {
-      const res = await fetch(`${API}/expenses`)
+      const res = await fetch(`${API}/expenses`, {
+        credentials: 'include',
+      })
       if (!res.ok) {
         const txt = await res.text().catch(() => '')
         throw new Error(`HTTP ${res.status}: ${txt || res.statusText}`)
@@ -23,16 +26,59 @@ export default function ExpensesListPage() {
     retry: 1,
   })
 
-  if (isLoading) return <p className="p-6 text-sm text-muted-foreground">Loading…</p>
-  if (isError)
+  const deleteExpense = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${API}/expenses/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('Failed to delete expense')
+      return id
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['expenses'] })
+      const previous = qc.getQueryData<{ expenses: Expense[] }>(['expenses'])
+      if (previous) {
+        qc.setQueryData(['expenses'], {
+          expenses: previous.expenses.filter((item) => item.id !== id),
+        })
+      }
+      return { previous }
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['expenses'], ctx.previous)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] })
+    },
+  })
+
+  if (isLoading) {
     return (
-      <div className="p-6">
-        <p className="text-sm text-red-600">Failed to fetch: {error.message}</p>
-        <button className="mt-3 rounded border px-3 py-1" onClick={() => refetch()} disabled={isFetching}>
+      <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+        </svg>
+        Loading expenses…
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <p>Could not load expenses. Please try again.</p>
+        <button
+          className="mt-2 rounded border border-red-300 px-3 py-1 text-xs text-red-700"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
           Retry
         </button>
       </div>
     )
+  }
 
   const items = data?.expenses ?? []
 
@@ -40,33 +86,72 @@ export default function ExpensesListPage() {
     <section className="mx-auto max-w-3xl p-6">
       <header className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Expenses</h2>
-        <button className="rounded border px-3 py-1 text-sm" onClick={() => refetch()} disabled={isFetching}>
+        <button 
+          className="rounded border px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40" 
+          onClick={() => refetch()} 
+          disabled={isFetching}
+        >
           {isFetching ? 'Refreshing…' : 'Refresh'}
         </button>
       </header>
 
       {items.length === 0 ? (
-        <div className="rounded border bg-background p-6">
-          <p className="text-sm text-muted-foreground">No expenses yet.</p>
+        <div className="rounded border bg-background p-6 text-center">
+          <h3 className="text-lg font-semibold">No expenses yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Start by adding your first expense using the form above.
+          </p>
         </div>
       ) : (
         <ul className="space-y-2">
-          {items.map((e) => (
+          {items.map((expense) => (
             <li
-              key={e.id}
-              className="flex items-center justify-between rounded border bg-background text-foreground p-3 shadow-sm"
+              key={expense.id}
+              className="flex items-center justify-between rounded border bg-background p-3 shadow-sm"
             >
-              <Link
-                to="/expenses/$id"
-                params={{ id: e.id }}
-                className="font-medium underline hover:text-primary"
-              >
-                {e.title}
-              </Link>
-              <span className="tabular-nums">#{e.amount}</span>
+              <div className="flex flex-col">
+                <Link
+                  to="/expenses/$id"
+                  params={{ id: expense.id }}
+                  className="font-medium underline hover:text-primary"
+                >
+                  {expense.title}
+                </Link>
+                <span className="text-sm text-muted-foreground">${expense.amount}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {expense.fileUrl && (
+                  <a
+                    href={expense.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 underline"
+                  >
+                    Download
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete this expense?')) {
+                      deleteExpense.mutate(expense.id)
+                    }
+                  }}
+                  disabled={deleteExpense.isPending}
+                  className="text-sm text-red-600 underline disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleteExpense.isPending ? 'Removing…' : 'Delete'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+      )}
+      
+      {deleteExpense.isError && (
+        <div className="mt-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p>Could not delete expense. Please try again.</p>
+        </div>
       )}
     </section>
   )

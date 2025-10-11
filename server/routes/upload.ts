@@ -22,17 +22,16 @@ export const uploadRoute = new Hono()
     return c.json({ uploadUrl, key })
   })
 
-  .get('/signedUrl/uploads/:fileKey', async (c) => {
+  .get('/signedUrl/:fileKey', async (c) => {
     const err = await requireAuth(c)
     if (err) return err
 
     const { fileKey } = c.req.param()
     console.log("fileKey", fileKey)
-    // return c.json({ message: "fileKey", fileKey: fileKey })
 
     const command = new GetObjectCommand({
       Bucket: process.env.S3_BUCKET!,
-      Key: `uploads/${fileKey}`,
+      Key: fileKey,
     })
     console.log("command", command)
     const url = await getSignedUrl(s3, command, { expiresIn: 600 })
