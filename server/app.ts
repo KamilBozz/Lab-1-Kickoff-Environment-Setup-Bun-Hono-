@@ -12,13 +12,15 @@ import { uploadRoute } from './routes/upload'
 
 export const app = new Hono()
 
-// CORS configuration for development
-app.use('/api/*', cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-  allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}))
+// CORS configuration - only needed in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/*', cors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }))
+}
 
 // Global logger (from Lab 1)
 app.use('*', logger())
