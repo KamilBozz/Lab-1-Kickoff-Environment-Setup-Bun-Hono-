@@ -35,7 +35,10 @@ app.use('*', async (c, next) => {
 })
 
 // Health endpoint
-app.get('/health', (c) => c.text('ok'))
+app.get('/health', (c) => {
+  c.header('Content-Type', 'text/plain')
+  return c.text('ok')
+})
 
 // Mount API routes (must be before static file serving)
 app.route('/api/auth', authRoute)
