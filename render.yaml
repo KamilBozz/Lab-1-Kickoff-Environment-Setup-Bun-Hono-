@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: comp3330-expensetracker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    # Add your environment variables here:
+    # - key: DATABASE_URL
+    #   sync: false
+    # - key: KINDE_ISSUER_URL
+    #   sync: false
+    # - key: KINDE_AUDIENCE
+    #   sync: false
+    # - key: S3_REGION
+    #   sync: false
+    # - key: S3_ENDPOINT
+    #   sync: false
+    # - key: S3_BUCKET
+    #   sync: false
+    # - key: S3_ACCESS_KEY
+    #   sync: false
+    # - key: S3_SECRET_KEY
+    #   sync: false
