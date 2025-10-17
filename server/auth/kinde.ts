@@ -4,7 +4,7 @@ import { setCookie, deleteCookie, getCookie } from 'hono/cookie'
 import type { SessionManager } from '@kinde-oss/kinde-typescript-sdk'
 import { createKindeServerClient, GrantType } from '@kinde-oss/kinde-typescript-sdk'
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+const FRONTEND_URL = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL : 'http://localhost:5173')
 
 export const kindeClient = createKindeServerClient(GrantType.AUTHORIZATION_CODE, {
   authDomain: process.env.KINDE_ISSUER_URL!,
@@ -47,14 +47,18 @@ export const authRoute = new Hono()
   .get('/callback', async (c) => {
     const session = sessionFromHono(c)
     await kindeClient.handleRedirectToApp(session, new URL(c.req.url))
-    return c.redirect(`${FRONTEND_URL}/expenses`)
+    // In production, redirect to the same domain (SPA), in dev redirect to frontend
+    const redirectUrl = process.env.NODE_ENV === 'production' ? '/' : `${FRONTEND_URL}/expenses`
+    return c.redirect(redirectUrl)
   })
 
   // 3) Logout via SDK: clears SDK-managed session and redirects
   .get('/logout', async (c) => {
     const session = sessionFromHono(c)
     await kindeClient.logout(session)
-    return c.redirect(FRONTEND_URL)
+    // In production, redirect to the same domain (SPA), in dev redirect to frontend
+    const redirectUrl = process.env.NODE_ENV === 'production' ? '/' : (FRONTEND_URL || 'http://localhost:5173')
+    return c.redirect(redirectUrl)
   })
 
   // 4) Current user (profile)
