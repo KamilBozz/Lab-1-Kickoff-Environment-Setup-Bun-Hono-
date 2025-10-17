@@ -1,11 +1,9 @@
 // server/app.ts
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
-import { serveStatic } from 'hono/serve-static'
 import { expensesRoute } from './routes/expenses'
 import { cors } from 'hono/cors'
 import { authRoute } from './auth/kinde'
-// server/app.ts
 import { secureRoute } from './routes/secure'
 import { uploadRoute } from './routes/upload'
 
@@ -43,15 +41,70 @@ app.route('/api/secure', secureRoute)
 app.route('/api/expenses', expensesRoute)
 app.route('/api/upload', uploadRoute)
 
-// Static assets serving
-app.use('/*', serveStatic({ root: './server/public' }))
-
-// SPA fallback for client-side routing: for non-API, non-file requests
+// Static assets serving and SPA fallback
 app.get('*', async (c, next) => {
   const url = new URL(c.req.url)
-  if (url.pathname.startsWith('/api')) return next()
-  // serve index.html for SPA routing
-  return c.html(await Bun.file('./server/public/index.html').text())
+  const pathname = url.pathname
+  
+  // Skip API routes
+  if (pathname.startsWith('/api')) return next()
+  
+  // Try to serve static files
+  const publicPath = `./server/public${pathname}`
+  
+  try {
+    const file = Bun.file(publicPath)
+    const exists = await file.exists()
+    
+    if (exists) {
+      // Determine content type based on file extension
+      const ext = pathname.split('.').pop()?.toLowerCase()
+      let contentType = 'text/plain'
+      
+      switch (ext) {
+        case 'html':
+          contentType = 'text/html'
+          break
+        case 'css':
+          contentType = 'text/css'
+          break
+        case 'js':
+          contentType = 'application/javascript'
+          break
+        case 'json':
+          contentType = 'application/json'
+          break
+        case 'png':
+          contentType = 'image/png'
+          break
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg'
+          break
+        case 'svg':
+          contentType = 'image/svg+xml'
+          break
+        case 'ico':
+          contentType = 'image/x-icon'
+          break
+      }
+      
+      c.header('Content-Type', contentType)
+      return c.body(await file.arrayBuffer())
+    }
+  } catch (error) {
+    // File doesn't exist or error reading, fall through to SPA fallback
+  }
+  
+  // SPA fallback - serve index.html for client-side routing
+  try {
+    const indexFile = Bun.file('./server/public/index.html')
+    const indexContent = await indexFile.text()
+    c.header('Content-Type', 'text/html')
+    return c.html(indexContent)
+  } catch (error) {
+    return c.text('Not Found', 404)
+  }
 })
 
 export default app
