@@ -4,14 +4,20 @@ import { setCookie, deleteCookie, getCookie } from 'hono/cookie'
 import type { SessionManager } from '@kinde-oss/kinde-typescript-sdk'
 import { createKindeServerClient, GrantType } from '@kinde-oss/kinde-typescript-sdk'
 
-const FRONTEND_URL = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? process.env.RENDER_EXTERNAL_URL : 'http://localhost:5173')
+// In production, we serve everything from the same domain (SPA)
+// In development, we need to redirect to the frontend dev server
+const FRONTEND_URL = process.env.NODE_ENV === 'production' 
+  ? process.env.RENDER_EXTERNAL_URL || ''
+  : (process.env.FRONTEND_URL || 'http://localhost:5173')
 
 export const kindeClient = createKindeServerClient(GrantType.AUTHORIZATION_CODE, {
   authDomain: process.env.KINDE_ISSUER_URL!,
   clientId: process.env.KINDE_CLIENT_ID!,
   clientSecret: process.env.KINDE_CLIENT_SECRET!,
   redirectURL: process.env.KINDE_REDIRECT_URI!,
-  logoutRedirectURL: FRONTEND_URL,
+  logoutRedirectURL: process.env.NODE_ENV === 'production' 
+    ? (process.env.RENDER_EXTERNAL_URL || '') 
+    : FRONTEND_URL,
 })
 
 // Minimal cookie-backed SessionManager for Hono.
