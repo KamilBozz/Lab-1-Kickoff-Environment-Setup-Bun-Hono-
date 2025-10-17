@@ -14,7 +14,7 @@ export function UploadExpenseForm({ expenseId }: { expenseId: number }) {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       // 1) Get a signed upload URL from backend
-      const signRes = await fetch('http://localhost:3000/api/upload/sign', {
+      const signRes = await fetch('/api/upload/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -42,7 +42,7 @@ export function UploadExpenseForm({ expenseId }: { expenseId: number }) {
       }
 
       // 3) Update this expense with the file's S3 key
-      const updateRes = await fetch(`http://localhost:3000/api/expenses/${expenseId}`, {
+      const updateRes = await fetch(`/api/expenses/${expenseId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

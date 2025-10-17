@@ -7,16 +7,21 @@ import { createKindeServerClient, GrantType } from '@kinde-oss/kinde-typescript-
 // In production, we serve everything from the same domain (SPA)
 // In development, we need to redirect to the frontend dev server
 const FRONTEND_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.RENDER_EXTERNAL_URL || ''
+  ? '' // Empty string for same-domain redirects in production
   : (process.env.FRONTEND_URL || 'http://localhost:5173')
+
+// Determine redirect URL based on environment
+const REDIRECT_URL = process.env.NODE_ENV === 'production'
+  ? `${process.env.RENDER_EXTERNAL_URL}/api/auth/callback`
+  : process.env.KINDE_REDIRECT_URI || 'http://localhost:3000/api/auth/callback'
 
 export const kindeClient = createKindeServerClient(GrantType.AUTHORIZATION_CODE, {
   authDomain: process.env.KINDE_ISSUER_URL!,
   clientId: process.env.KINDE_CLIENT_ID!,
   clientSecret: process.env.KINDE_CLIENT_SECRET!,
-  redirectURL: process.env.KINDE_REDIRECT_URI!,
+  redirectURL: REDIRECT_URL,
   logoutRedirectURL: process.env.NODE_ENV === 'production' 
-    ? (process.env.RENDER_EXTERNAL_URL || '') 
+    ? '' // Empty string for same-domain redirects in production
     : FRONTEND_URL,
 })
 

@@ -11,7 +11,7 @@ export function AddExpenseForm() {
 
   const mutation = useMutation({
     mutationFn: async (payload: { title: string; amount: number }) => {
-      const res = await fetch('http://localhost:3000/api/expenses', {
+      const res = await fetch('/api/expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

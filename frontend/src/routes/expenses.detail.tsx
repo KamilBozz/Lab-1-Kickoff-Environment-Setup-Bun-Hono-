@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { UploadExpenseForm } from '../components/UploadExpenseForm'
 import type { Expense } from '../components/AddExpenseForm'
 
-const API = 'http://localhost:3000/api' // if you're using Vite proxy; otherwise "http://localhost:3000/api"
+const API = '/api' // Use relative URLs for production compatibility
 
 export default function ExpenseDetailPage({ id }: { id: number }) {
   // useQuery caches by key ['expenses', id]

@@ -9,4 +9,4 @@ export default {
   fetch: app.fetch,
 }
 
-console.log(`🚀 Server running on http://localhost:${port}`)
+// console.log(`🚀 Server running on http://localhost:${port}`)

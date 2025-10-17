@@ -4,7 +4,7 @@ import { Link } from '@tanstack/react-router'
 import type { Expense } from '../components/AddExpenseForm'
 
 // Use "/api" if you configured a Vite proxy in dev; otherwise use
-const API = 'http://localhost:3000/api'
+const API = '/api' // Use relative URLs for production compatibility
 // const API = '/api'
 
 export default function ExpensesListPage() {
